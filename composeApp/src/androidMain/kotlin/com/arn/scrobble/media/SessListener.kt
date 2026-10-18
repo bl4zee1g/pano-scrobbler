@@ -10,6 +10,7 @@ import android.os.Build
 import android.os.Bundle
 import co.touchlab.kermit.Logger
 import com.arn.scrobble.BuildKonfig
+import com.arn.scrobble.discordrpc.DiscordRpc
 import com.arn.scrobble.media.PlayerActions.love
 import com.arn.scrobble.media.PlayerActions.unlove
 import com.arn.scrobble.utils.AndroidStuff
@@ -19,6 +20,7 @@ import com.arn.scrobble.utils.PanoNotifications
 import com.arn.scrobble.utils.PlatformStuff
 import com.arn.scrobble.utils.Stuff
 import com.arn.scrobble.utils.Stuff.stateInWithCache
+import com.arn.scrobble.utils.AndroidBuildVariant
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.combine
@@ -215,8 +217,16 @@ class SessListener(
             controller.unlove()
         }
 
+        override fun pause() {
+            super.pause()
+            if (!AndroidBuildVariant.isPlay)
+                DiscordRpc.paused(trackInfo.hash)
+        }
+
         override fun stop() {
-            pause()
+            super.pause()
+            if (!AndroidBuildVariant.isPlay)
+                DiscordRpc.clearPaused(trackInfo.hash)
             controller.unregisterCallback(callback)
         }
 

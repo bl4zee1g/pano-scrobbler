@@ -144,9 +144,10 @@ you **automatic updates**.
 - Charts as a customizable home-screen widget
 - Get your top scrobbles digests as a notification at the end of every week, month and year
 
-### Desktop only:
+### Desktop and Android (non-Play builds only):
 
-- Customizable Discord Rich Presence
+- Customizable Discord Rich Presence. On Android, this needs you to log in with Discord and is
+  not available in the Play Store build.
 
 ## Credits
 

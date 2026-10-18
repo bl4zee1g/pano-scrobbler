@@ -134,7 +134,17 @@ data class MainPrefs(
     val extractFirstArtistPackages: Set<String> = emptySet(),
     val discordRpc: DiscordRpcPrefs = DiscordRpcPrefs(),
     val proxy: ProxyPrefs = ProxyPrefs(),
+    // only used on Android, not exported
+    val discordAuth: DiscordAuthPrefs? = null,
 ) {
+
+    @Serializable
+    data class DiscordAuthPrefs(
+        val accessToken: String,
+        val refreshToken: String,
+        val expiresAtSecs: Long,
+        val username: String? = null,
+    )
 
     @Serializable
     data class DiscordRpcPrefs(
@@ -150,6 +160,13 @@ data class MainPrefs(
         val detailsUrl: Boolean = true,
         val lovedState: Boolean = true,
         val buttonType: String = ButtonType.PANO_SCROBBLER.name,
+        // android has two custom buttons instead of buttonType. Empty or invalid ones are not shown
+        val button1Enabled: Boolean = true,
+        val button1Label: String = "Last.fm",
+        val button1Url: String = $$"https://www.last.fm/music/$artist/_/$title",
+        val button2Enabled: Boolean = true,
+        val button2Label: String = "via Pano Scrobbler",
+        val button2Url: String = "https://github.com/kawaiiDango/pano-scrobbler",
     ) {
         enum class ButtonType {
             PANO_SCROBBLER, LASTFM_PROFILE, LISTENBRAINZ_PROFILE, LIBREFM_PROFILE, NONE

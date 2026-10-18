@@ -13,6 +13,8 @@ import com.arn.scrobble.BuildKonfig
 import com.arn.scrobble.R
 import com.arn.scrobble.api.lastfm.ScrobbleData
 import com.arn.scrobble.logger.JavaUtilFileLogger
+import com.arn.scrobble.discordrpc.DiscordRpc
+import com.arn.scrobble.utils.AndroidBuildVariant
 import com.arn.scrobble.utils.AndroidStuff
 import com.arn.scrobble.utils.AndroidStuff.toast
 import com.arn.scrobble.utils.MetadataUtils
@@ -161,6 +163,9 @@ class NLService : NotificationListenerService() {
                 }
             }
         }
+
+        if (!AndroidBuildVariant.isPlay)
+            DiscordRpc.start()
 
         coroutineScope.launch {
             listenForPlayingTrackEvents(scrobbleQueue, sessListener!!)

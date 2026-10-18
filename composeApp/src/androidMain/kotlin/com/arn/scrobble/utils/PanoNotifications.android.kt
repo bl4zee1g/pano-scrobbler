@@ -47,6 +47,8 @@ import pano_scrobbler.composeapp.generated.resources.tap_to_edit
 import pano_scrobbler.composeapp.generated.resources.unlove
 import pano_scrobbler.composeapp.generated.resources.update_available
 import pano_scrobbler.composeapp.generated.resources.yes
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlin.time.Duration.Companion.milliseconds
 
 actual object PanoNotifications {
@@ -58,6 +60,9 @@ actual object PanoNotifications {
     private val notiColor by lazy { context.getColor(R.color.pinkNoti) }
     private val nowPlayingData = mutableMapOf<String, PlayingTrackNotifyEvent.TrackPlaying>()
     private val activeScrobbleNotifications = linkedMapOf<String, Notification.Builder>()
+    private val _playingTrackStates =
+        MutableStateFlow<Map<String, PlayingTrackNotifyEvent.PlayingTrackState>>(emptyMap())
+    val playingTrackStates = _playingTrackStates.asStateFlow()
     private var channelsCreated = false
     var fgNotiShown = false
 
@@ -130,6 +135,8 @@ actual object PanoNotifications {
     }
 
     actual suspend fun notifyScrobble(event: PlayingTrackNotifyEvent.TrackPlaying) {
+        _playingTrackStates.value += event.notiKey to event
+
         if (event.nowPlaying)
             nowPlayingData[event.notiKey] = event
         else
@@ -272,6 +279,8 @@ actual object PanoNotifications {
     }
 
     actual suspend fun notifyError(event: PlayingTrackNotifyEvent.Error) {
+        _playingTrackStates.value += event.notiKey to event
+
 //        if (!isNotiChannelEnabled(Stuff.CHANNEL_NOTI_SCROBBLING))
 //            return
 
@@ -548,6 +557,7 @@ actual object PanoNotifications {
     }
 
     actual fun removeNotificationByKey(key: String) {
+        _playingTrackStates.value -= key
         nowPlayingData.remove(key)
 
         val wasFirst = activeScrobbleNotifications.keys.firstOrNull() == key

@@ -218,7 +218,14 @@ buildkonfig {
     targetConfigs {
         // names in create should be the same as target names you specified
         create("android") {
-//            buildConfigField(STRING, "nullableField", "NonNull-value", nullable = true)
+            // optional, the Discord application used for the Android Discord Rich Presence login.
+            // Must have the redirect uri registered, see instructions.md
+            buildConfigField(
+                STRING,
+                "DISCORD_ANDROID_CLIENT_ID",
+                localProperties.getProperty("discord.clientId").orEmpty(),
+                const = true
+            )
         }
 
         create("jvm") {

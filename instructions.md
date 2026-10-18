@@ -27,6 +27,17 @@ releaseGithub.storePassword=
 
 - **Info**: the FOSS build includes no non-free dependencies.
 
+- Optionally, for the Android Discord Rich Presence (non-Play builds only) to use your own Discord
+  application, fill this value in local.properties:
+
+```
+discord.clientId=<Application ID>
+```
+
+  In the [Discord developer portal](https://discord.com/developers/applications), for that
+  application: under OAuth2, add the redirect `panoscrobblerdiscord://oauth2/callback`, and turn on
+  "Public Client".
+
 ### For Android (Play Store):
 
 - Create a Firebase project for Crashlytics and add the google-services.json to composeApp/

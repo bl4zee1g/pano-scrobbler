@@ -32,6 +32,13 @@
     <string name="special_app_access" translatable="false">Special app access</string>
     <string name="automation_cp" translatable="false">ContentProvider URIs</string>
     <string name="discord_rich_presence" translatable="false">Discord Rich Presence</string>
+    <string name="discord_login" translatable="false">Log in with Discord</string>
+    <string name="discord_logout" translatable="false">Log out of Discord</string>
+    <string name="discord_logged_in_as" translatable="false">Logged in as %1$s</string>
+    <string name="discord_login_summary" translatable="false">Required to show your Discord Rich Presence</string>
+    <string name="discord_login_failed" translatable="false">Discord login failed</string>
+    <string name="discord_button_n" translatable="false">Button %1$d</string>
+    <string name="discord_button_text" translatable="false">Button text</string>
     <string name="log_to_file" translatable="false">Persist scrobble logs</string>
     <string name="proxy_socks5" translatable="false">SOCKS5</string>
     <string name="proxy_http" translatable="false">HTTP</string>

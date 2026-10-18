@@ -1,3 +1,4 @@
+- Discord Rich Presence on Android, in the non-Play builds
 - Toggle to not scrobble Spotify playing on other devices, is available on Windows
 - Supports fractional scaling on Linux
 - Uses the native tray menu on Windows. Does not spin up the entire Compose engine GPU rendering

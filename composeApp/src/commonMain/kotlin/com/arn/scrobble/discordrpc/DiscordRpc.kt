@@ -2,7 +2,6 @@ package com.arn.scrobble.discordrpc
 
 import co.touchlab.kermit.Logger
 import com.arn.scrobble.BuildKonfig
-import com.arn.scrobble.PanoNativeComponents
 import com.arn.scrobble.api.AccountType
 import com.arn.scrobble.api.Scrobblables
 import com.arn.scrobble.api.ScrobbleEverywhere
@@ -13,7 +12,6 @@ import com.arn.scrobble.media.notifyPlayingTrackEvent
 import com.arn.scrobble.pref.AppItem
 import com.arn.scrobble.pref.MainPrefs
 import com.arn.scrobble.ui.accountTypeStringRes
-import com.arn.scrobble.utils.PanoNotifications
 import com.arn.scrobble.utils.PlatformStuff
 import com.arn.scrobble.utils.Stuff
 import io.ktor.http.encodeURLPathPart
@@ -33,7 +31,7 @@ import pano_scrobbler.composeapp.generated.resources.profile
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
-private sealed interface DiscordActivity {
+internal sealed interface DiscordActivity {
     // https://discord.com/developers/docs/social-sdk/classdiscordpp_1_1ActivityAssets.html
     data class Activity(
         val discordClientId: String,
@@ -55,6 +53,8 @@ private sealed interface DiscordActivity {
         val statusLine: Int,
         val buttonText: String,
         val buttonUrl: String,
+        val button2Text: String = "",
+        val button2Url: String = "",
         // null = don't clear, >0 = clear after secs
 //        val keepTill: Long?
         val isPlaying: Boolean,
@@ -64,6 +64,28 @@ private sealed interface DiscordActivity {
 
     data object Clear : DiscordActivity
     data object Stop : DiscordActivity
+}
+
+/** Returns the start and end times in seconds. The end time is 0 if it is unknown. */
+internal fun DiscordActivity.Activity.timestampsSecs(now: Long): Pair<Long, Long> {
+    val startTimeMillis = if (isPlaying || durationMillis == null)
+        startTimeMillis
+    else
+        now - durationMillis
+
+    val startTimeSecs = startTimeMillis / 1000
+
+    val endTimeSecs =
+        if (durationMillis != null && durationMillis > 0) {
+            if (isPlaying)
+                startTimeSecs + (durationMillis / 1000)
+            else
+                now / 1000
+        } else {
+            0
+        }
+
+    return startTimeSecs to endTimeSecs
 }
 
 private enum class DiscordRpcStatus {
@@ -90,8 +112,14 @@ object DiscordRpc {
     val wasSuccessful = _lastStatus.map { it == DiscordRpcStatus.ACTIVITY_SET }
     private val retryDelay = 10.seconds
 
+    @Volatile
+    private var started = false
+
     fun start() {
-        PanoNotifications.playingTrackTrayInfo
+        if (started) return
+        started = true
+
+        DiscordRpcPlatform.playingTrackStates
             .mapLatest {
                 delay(500.milliseconds) // debounce the source
                 it.values
@@ -232,54 +260,8 @@ object DiscordRpc {
             .launchIn(Stuff.appScope)
     }
 
-    private fun updateActivity(activity: DiscordActivity): Boolean =
-        when (activity) {
-            is DiscordActivity.Activity -> {
-                val now = System.currentTimeMillis()
-
-                val startTimeMillis = if (activity.isPlaying || activity.durationMillis == null)
-                    activity.startTimeMillis
-                else
-                    now - activity.durationMillis
-
-                val startTimeSecs = startTimeMillis / 1000
-
-                val endTimeSecs =
-                    if (activity.durationMillis != null && activity.durationMillis > 0) {
-                        if (activity.isPlaying)
-                            startTimeSecs + (activity.durationMillis / 1000)
-                        else
-                            now / 1000
-                    } else {
-                        0
-                    }
-
-                PanoNativeComponents.updateDiscordActivity(
-                    clientId = activity.discordClientId,
-                    name = activity.name,
-                    state = activity.state,
-                    details = activity.details,
-                    largeText = activity.largeText,
-                    startTime = startTimeSecs,
-                    endTime = endTimeSecs,
-                    artUrl = activity.artUrl,
-                    detailsUrl = activity.detailsUrl,
-                    isPlaying = activity.isPlaying,
-                    statusLine = activity.statusLine,
-                    buttonText = activity.buttonText,
-                    buttonUrl = activity.buttonUrl,
-                )
-
-            }
-
-            is DiscordActivity.Clear -> {
-                PanoNativeComponents.clearDiscordActivity(false)
-            }
-
-            is DiscordActivity.Stop -> {
-                PanoNativeComponents.clearDiscordActivity(true)
-            }
-        }
+    private suspend fun updateActivity(activity: DiscordActivity): Boolean =
+        DiscordRpcPlatform.update(activity)
 
     // call this only on isPlaying=true. The art is from now playing
     private suspend fun fetchArt(scrobbleData: ScrobbleData, hash: Int) {
@@ -307,19 +289,49 @@ object DiscordRpc {
         settings: MainPrefs.DiscordRpcPrefs,
     ): DiscordActivity.Activity {
         val hash = trackPlaying.hash
-        val state = formatLine(settings.line2Format, trackPlaying, appName, settings.lovedState)
-        val details = formatLine(settings.line1Format, trackPlaying, appName, settings.lovedState)
-        val largeText = formatLine(settings.line3Format, trackPlaying, appName, settings.lovedState)
-        val name = formatLine(settings.nameFormat, trackPlaying, appName, settings.lovedState)
+        // the track url and the loved heart are desktop only
+        val isDesktop = PlatformStuff.isDesktop
+        val showLoved = isDesktop && settings.lovedState
+
+        val state = formatLine(settings.line2Format, trackPlaying, appName, showLoved)
+        val details = formatLine(settings.line1Format, trackPlaying, appName, showLoved)
+        val largeText = formatLine(settings.line3Format, trackPlaying, appName, showLoved)
+        val name = formatLine(settings.nameFormat, trackPlaying, appName, showLoved)
         val startTimeMillis =
             trackPlaying.timelineStartTime.takeIf { it > 0 } ?: System.currentTimeMillis()
         val durationMillis = trackPlaying.scrobbleData.duration
         val artUrl = trackPlaying.artUrlState.takeIf { settings.albumArt }?.url.orEmpty()
         val statusLine = settings.statusLine
-        val detailsUrl = if (settings.detailsUrl)
+        val detailsUrl = if (isDesktop && settings.detailsUrl)
             "https://www.last.fm/music/${trackPlaying.scrobbleData.artist.encodeURLPathPart()}/_/${trackPlaying.scrobbleData.track.encodeURLPathPart()}"
         else
             ""
+
+        var button1 = buttonText to buttonUrl
+        var button2 = "" to ""
+
+        if (!isDesktop) {
+            // two custom buttons, hidden if the label or the url is empty or invalid
+            fun customButton(enabled: Boolean, label: String, url: String): Pair<String, String>? {
+                if (!enabled) return null
+                val text = formatLine(label, trackPlaying, appName, false).trim().take(32)
+                val link = formatLine(url, trackPlaying, appName, false, encode = true).trim()
+
+                return if (text.isEmpty() || link.length > 512 ||
+                    !(link.startsWith("https://") || link.startsWith("http://"))
+                )
+                    null
+                else
+                    text to link
+            }
+
+            val custom = listOfNotNull(
+                customButton(settings.button1Enabled, settings.button1Label, settings.button1Url),
+                customButton(settings.button2Enabled, settings.button2Label, settings.button2Url),
+            )
+            button1 = custom.getOrNull(0) ?: ("" to "")
+            button2 = custom.getOrNull(1) ?: ("" to "")
+        }
 
         return DiscordActivity.Activity(
             discordClientId = Stuff.DISCORD_CLIENT_ID,
@@ -334,8 +346,10 @@ object DiscordRpc {
             artUrl = artUrl.takeIf { it.length in 1..300 }.orEmpty(),
             detailsUrl = detailsUrl.takeIf { it.length in 2..256 }.orEmpty(),
             statusLine = statusLine,
-            buttonText = buttonText,
-            buttonUrl = buttonUrl,
+            buttonText = button1.first,
+            buttonUrl = button1.second,
+            button2Text = button2.first,
+            button2Url = button2.second,
             showPausedForSecs = settings.showPausedForSecs,
             isPlaying = true,
             canFetchArt = settings.albumArt &&
@@ -367,9 +381,10 @@ object DiscordRpc {
         trackPlaying: PlayingTrackNotifyEvent.TrackPlaying,
         appName: String,
         showLoved: Boolean,
+        encode: Boolean = false,
     ): String {
         return template.replace(placeholderRegex) { match ->
-            when (match.groupValues.getOrNull(1)) {
+            val value = when (match.groupValues.getOrNull(1)) {
                 DiscordRpcPlaceholder.artist.name -> trackPlaying.scrobbleData.artist
                 DiscordRpcPlaceholder.title.name -> (if (trackPlaying.userLoved && showLoved) "❤ " else "") +
                         trackPlaying.scrobbleData.track
@@ -386,6 +401,9 @@ object DiscordRpc {
 
                 else -> match.value
             }
+
+            // for urls
+            if (encode) value.encodeURLPathPart() else value
         }
     }
 }

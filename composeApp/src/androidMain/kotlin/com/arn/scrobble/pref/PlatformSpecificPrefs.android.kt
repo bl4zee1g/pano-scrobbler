@@ -16,6 +16,7 @@ import com.arn.scrobble.MasterSwitchQS
 import com.arn.scrobble.R
 import com.arn.scrobble.navigation.PanoRoute
 import com.arn.scrobble.ui.PanoSnackbarVisuals
+import com.arn.scrobble.utils.AndroidBuildVariant
 import com.arn.scrobble.utils.AndroidStuff
 import com.arn.scrobble.utils.PlatformStuff
 import com.arn.scrobble.utils.Stuff
@@ -27,6 +28,7 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import pano_scrobbler.composeapp.generated.resources.Res
+import pano_scrobbler.composeapp.generated.resources.discord_rich_presence
 import pano_scrobbler.composeapp.generated.resources.persistent_noti_fgs
 import pano_scrobbler.composeapp.generated.resources.persistent_noti_hide
 import pano_scrobbler.composeapp.generated.resources.pref_master_qs_add
@@ -155,7 +157,15 @@ actual object PlatformSpecificPrefs {
     actual fun prefAddToAppLauncher(filteredItem: FilteredItem) {}
 
     actual fun discordRpc(filteredItem: FilteredItem, onNavigate: (PanoRoute) -> Unit) {
-        // no-op
+        // not available in the Play Store builds
+        if (AndroidBuildVariant.isPlay || PlatformStuff.isTv) return
+
+        filteredItem("discord_rich_presence", Res.string.discord_rich_presence, null) { title ->
+            TextPref(
+                text = title,
+                onClick = { onNavigate(PanoRoute.DiscordRpcSettings) }
+            )
+        }
     }
 
     actual fun tidalSteelSeries(filteredItem: FilteredItem, enabled: Boolean) {

@@ -125,6 +125,24 @@
             android:windowSoftInputMode="adjustResize" />
 
         <activity
+            android:name="com.arn.scrobble.discordrpc.DiscordOAuthActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.BROWSABLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data
+                    android:host="oauth2"
+                    android:pathPrefix="/callback"
+                    android:scheme="panoscrobblerdiscord" />
+            </intent-filter>
+        </activity>
+
+        <activity
             android:name="com.arn.scrobble.widget.ChartsWidgetConfigActivity"
             android:configChanges="screenSize|screenLayout|keyboardHidden|mnc|colorMode|density|fontScale|fontWeightAdjustment|keyboard|layoutDirection|locale|mcc|navigation|orientation|smallestScreenSize|touchscreen|uiMode"
             android:exported="true"
