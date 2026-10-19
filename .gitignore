@@ -38,3 +38,5 @@ crowdin.properties
 Gemfile.lock
 .jekyll-cache
 _site/
+# kotlin language server cache
+kls_database.db

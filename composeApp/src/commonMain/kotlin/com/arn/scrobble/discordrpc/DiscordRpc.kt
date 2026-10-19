@@ -354,7 +354,10 @@ object DiscordRpc {
             isPlaying = true,
             canFetchArt = settings.albumArt &&
                     settings.albumArtFromNowPlaying &&
-                    trackPlaying.artUrlState == PlayingTrackInfo.ArtUrlState.CanFetch
+                    // on Android, the CanFetch state does not reach here, since the
+                    // now playing event is only sent for listenbrainz. So try when there is no art at all
+                    (trackPlaying.artUrlState == PlayingTrackInfo.ArtUrlState.CanFetch ||
+                            !isDesktop && trackPlaying.artUrlState == PlayingTrackInfo.ArtUrlState.None)
         )
     }
 
