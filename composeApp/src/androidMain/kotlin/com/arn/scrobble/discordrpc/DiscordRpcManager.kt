@@ -54,7 +54,7 @@ internal object DiscordRpcManager {
     @Volatile
     private var imageJob: Job? = null
 
-    private suspend fun currentAuth() = PlatformStuff.mainPrefs.data.first().discordAuth
+    private suspend fun currentAuth() = DiscordAuth.currentAuth()
 
     @Synchronized
     private fun start() {

@@ -154,11 +154,35 @@ object DiscordAuth {
     }
 
     suspend fun logout() {
-        PlatformStuff.mainPrefs.updateData { it.copy(discordAuth = null) }
+        // presence can't work without a login, so the toggle must not stay on
+        PlatformStuff.mainPrefs.updateData {
+            it.copy(discordAuth = null, discordRpc = it.discordRpc.copy(enabled = false))
+        }
+    }
+
+    /** The stored login with the tokens decrypted. Logs out if they can't be decrypted. */
+    suspend fun currentAuth(): MainPrefs.DiscordAuthPrefs? {
+        val stored = PlatformStuff.mainPrefs.data.first().discordAuth ?: return null
+        val access = DiscordTokenCipher.decrypt(stored.accessToken)
+        val refresh = DiscordTokenCipher.decrypt(stored.refreshToken)
+        if (access == null || refresh == null) {
+            logout()
+            return null
+        }
+        val plain = stored.copy(accessToken = access, refreshToken = refresh)
+        // migrate tokens that were stored before encryption was added
+        if (!DiscordTokenCipher.isEncrypted(stored.accessToken) ||
+            !DiscordTokenCipher.isEncrypted(stored.refreshToken)
+        ) save(plain)
+        return plain
     }
 
     private suspend fun save(tokens: MainPrefs.DiscordAuthPrefs) {
-        PlatformStuff.mainPrefs.updateData { it.copy(discordAuth = tokens) }
+        val encrypted = tokens.copy(
+            accessToken = DiscordTokenCipher.encrypt(tokens.accessToken),
+            refreshToken = DiscordTokenCipher.encrypt(tokens.refreshToken),
+        )
+        PlatformStuff.mainPrefs.updateData { it.copy(discordAuth = encrypted) }
     }
 
     private suspend fun tokenRequest(

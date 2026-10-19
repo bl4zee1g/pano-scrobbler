@@ -155,14 +155,15 @@ fun DiscordRpcScreen(
     ) {
         DiscordAccountPref()
 
+        val loggedIn = rememberDiscordLoggedIn()
         SwitchPref(
             text = stringResource(Res.string.enable),
-            value = settings.enabled,
-            // allow turning it off even after logging out
-            enabled = rememberDiscordLoggedIn() || settings.enabled,
+            value = settings.enabled && loggedIn,
+            // enabling needs a login
+            enabled = loggedIn,
             copyToSave = {
                 copy(
-                    discordRpc = settings.copy(enabled = it)
+                    discordRpc = settings.copy(enabled = it && loggedIn)
                 )
             }
         )

@@ -1,7 +1,16 @@
 package com.arn.scrobble.discordrpc
 
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import pano_scrobbler.composeapp.generated.resources.cancel
+import pano_scrobbler.composeapp.generated.resources.ok
+import pano_scrobbler.composeapp.generated.resources.discord_login_privacy
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import android.widget.Toast
 import co.touchlab.kermit.Logger
@@ -30,6 +39,7 @@ actual fun DiscordAccountPref() {
     val loginFailed = stringResource(Res.string.discord_login_failed)
 
     val loggedIn = auth != null
+    var showPrivacy by remember { mutableStateOf(false) }
 
     TextPref(
         text = stringResource(if (loggedIn) Res.string.discord_logout else Res.string.discord_login),
@@ -38,26 +48,45 @@ actual fun DiscordAccountPref() {
         else
             stringResource(Res.string.discord_login_summary),
         onClick = {
-            // not the composition scope: the activity can be recreated while the browser is open
-            Stuff.appScope.launch {
-                if (loggedIn) {
-                    DiscordAuth.logout()
-                } else {
-                    try {
-                        DiscordAuth.login(appContext)
-                        Logger.i { "Discord login succeeded" }
-                    } catch (e: CancellationException) {
-                        throw e
-                    } catch (e: Exception) {
-                        Logger.w(e) { "Discord login failed" }
-                        withContext(Dispatchers.Main) {
-                            appContext.toast(loginFailed + ": " + e.message, Toast.LENGTH_LONG)
-                        }
-                    }
-                }
+            if (loggedIn) {
+                Stuff.appScope.launch { DiscordAuth.logout() }
+            } else {
+                showPrivacy = true
             }
         }
     )
+
+    if (showPrivacy) {
+        AlertDialog(
+            onDismissRequest = { showPrivacy = false },
+            title = { Text(stringResource(Res.string.discord_login)) },
+            text = { Text(stringResource(Res.string.discord_login_privacy)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showPrivacy = false
+                    // not the composition scope: the activity can be recreated while the browser is open
+                    Stuff.appScope.launch {
+                        try {
+                            DiscordAuth.login(appContext)
+                            Logger.i { "Discord login succeeded" }
+                        } catch (e: CancellationException) {
+                            throw e
+                        } catch (e: Exception) {
+                            Logger.w(e) { "Discord login failed" }
+                            withContext(Dispatchers.Main) {
+                                appContext.toast(loginFailed + ": " + e.message, Toast.LENGTH_LONG)
+                            }
+                        }
+                    }
+                }) { Text(stringResource(Res.string.ok)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPrivacy = false }) {
+                    Text(stringResource(Res.string.cancel))
+                }
+            }
+        )
+    }
 }
 
 @Composable
