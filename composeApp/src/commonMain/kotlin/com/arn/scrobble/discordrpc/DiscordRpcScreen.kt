@@ -31,6 +31,8 @@ import com.arn.scrobble.ui.ErrorText
 import com.arn.scrobble.ui.HighlighterOutputTransformation
 import com.arn.scrobble.ui.PanoOutlinedTextField
 import com.arn.scrobble.utils.PlatformStuff
+import pano_scrobbler.composeapp.generated.resources.album_art_session
+import pano_scrobbler.composeapp.generated.resources.album_art_session_desc
 import com.arn.scrobble.utils.Stuff
 import com.arn.scrobble.utils.Stuff.collectAsStateWithInitialValue
 import kotlinx.coroutines.launch
@@ -165,6 +167,18 @@ fun DiscordRpcScreen(
             copyToSave = {
                 copy(
                     discordRpc = settings.copy(albumArtFromNowPlaying = it)
+                )
+            }
+        )
+
+        SwitchPref(
+            text = stringResource(Res.string.album_art_session),
+            summary = stringResource(Res.string.album_art_session_desc),
+            value = settings.albumArtFromSession,
+            enabled = enabled && settings.albumArt,
+            copyToSave = {
+                copy(
+                    discordRpc = settings.copy(albumArtFromSession = it)
                 )
             }
         )

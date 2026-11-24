@@ -389,6 +389,8 @@
     <string name="automation_cli">Command-line arguments</string>
     <string name="automation_cli_info">Run the pano-scrobbler executable with one of these command line arguments, while an instance is already running.</string>
     <string name="album_art_now_playing_desc">Needs a last.fm login</string>
+    <string name="album_art_session">Fetch album art from the media player, if required</string>
+    <string name="album_art_session_desc">Uploads a 512px copy of the cover to a temporary host. Covers are reused across tracks of the same album</string>
     <string name="spotify_consent">Fetch artist images from Spotify?</string>
     <string name="show_track_url" comment="Toggle to put the URL of the currently playing track, used for Discord Rich Presence">Track URL</string>
     <string name="edit_extract_track_example" formatted="true" comment="%1$s is the regex pattern">e.g. To extract metadata from the track field, if the track contains "Artist - Track", set the track regex to %1$s</string>

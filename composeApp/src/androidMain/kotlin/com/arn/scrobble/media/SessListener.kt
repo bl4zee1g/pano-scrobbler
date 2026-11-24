@@ -6,6 +6,7 @@ import android.media.MediaMetadata
 import android.media.session.MediaController
 import android.media.session.MediaSessionManager.OnActiveSessionsChangedListener
 import android.media.session.PlaybackState
+import android.graphics.Bitmap
 import android.os.Build
 import android.os.Bundle
 import co.touchlab.kermit.Logger
@@ -21,6 +22,7 @@ import com.arn.scrobble.utils.Stuff
 import com.arn.scrobble.utils.Stuff.stateInWithCache
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
@@ -254,6 +256,28 @@ class SessListener(
                 val (metadataInfo, ignoreScrobble) = transformMediaMetadata(trackInfo, metadata)
 
                 metadataChanged(metadataInfo, ignoreScrobble)
+
+                if (metadataInfo.artUrl == null) {
+                    val bitmap = metadata.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
+                        ?: metadata.getBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON)
+                    if (bitmap != null)
+                        fetchSessionArt(bitmap)
+                }
+            }
+
+            // uploads the session cover when the app gave no remote art url, then sets it on this track
+            private fun fetchSessionArt(bitmap: Bitmap) {
+                Stuff.appScope.launch(Dispatchers.IO) {
+                    val prefs = PlatformStuff.mainPrefs.data.first().discordRpc
+                    if (!prefs.albumArtFromSession)
+                        return@launch
+
+                    val url = SessionArtUploader.urlFor(bitmap) ?: return@launch
+
+                    notifyPlayingTrackEvent(
+                        PlayingTrackNotifyEvent.ArtUrlFetched(trackInfo.hash, url)
+                    )
+                }
             }
 
             @Synchronized

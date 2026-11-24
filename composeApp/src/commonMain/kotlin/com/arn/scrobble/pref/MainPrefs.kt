@@ -142,6 +142,7 @@ data class MainPrefs(
         val statusLine: Int = Line.Line2.ordinal,
         val albumArt: Boolean = true,
         val albumArtFromNowPlaying: Boolean = true,
+        val albumArtFromSession: Boolean = false,
         val line1Format: String = $$"$title",
         val line2Format: String = $$"$artist",
         val line3Format: String = $$"$album",
